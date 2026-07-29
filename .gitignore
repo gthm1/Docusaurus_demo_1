@@ -1,0 +1,8 @@
+node_modules
+.docusaurus
+build
+multi-build-output
+deploy
+docs
+.DS_Store
+.env.local
