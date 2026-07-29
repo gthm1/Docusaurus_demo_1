@@ -143,7 +143,81 @@ constraints. The consequence:
    deployment, this is where Cloudflare Access would replace Basic Auth
    entirely, same as the two-tier demo before it.
 
-## Local build commands
+## Editing content: TinaCMS
+
+Content editing uses [TinaCMS](https://tina.io) with a Tina Cloud backend —
+a git-backed CMS with genuine block-style, in-context editing (slash-menu
+tables, code blocks, and custom "Admonition" callout blocks), rather than a
+plain markdown textarea.
+
+### Why Tina points at `content-source/`, not `docs/`
+
+`docs/` is a generated folder — it gets wiped and rewritten by
+`scripts/prepare-and-build.mjs` on every build, filtered per target. Editing
+it directly would be pointless; changes would vanish on the next build. Tina
+is configured (`tina/config.ts`) to edit `content-source/` instead — the one
+tagged source of truth that both Tina and our build script read from.
+
+Tina's schema exposes exactly the fields our system relies on:
+
+- **Visibility** — `public` or `internal`, as a dropdown (not free text, so
+  it can't be mistyped in a way that silently breaks filtering)
+- **Customer** — `acme`, `beta`, or left blank for general internal docs
+- **Body** — rich-text block editor, with a custom `Admonition` block type
+  for callouts, in addition to the built-in tables/code blocks
+
+### Isolation: the CMS itself never ships to customer sites
+
+This mattered enough to catch and fix during setup: Tina's own admin editor
+bundle must **never** end up inside a customer's isolated public build — an
+Acme visitor should have no way to even discover the CMS exists, let alone
+reach it. Docusaurus copies its `static/` folder verbatim into every build
+with no filtering at all, so `tina/config.ts` explicitly builds Tina's admin
+UI into a separate `tina-admin-build/` folder outside `static/`, keeping it
+structurally impossible for the editor to leak into `deploy/docs/acme/` or
+`deploy/docs/beta/`. Verified directly: grepped every customer build's
+compiled output for `admin`/`tina` strings and folders — clean, both before
+and after publishing this fix.
+
+The practical implication: Tina editing happens in its own environment
+(local `npm run tina:dev`, or a protected staff-only deployment), completely
+separate from the three production static builds. Editors save through Tina
+→ Tina commits to git → the next `npm run build:all` picks up the change and
+regenerates all three isolated sites from the updated source.
+
+### Tina Cloud setup (one-time, manual)
+
+Tina Cloud's free tier covers up to 2 users — fine for this demo, worth
+reviewing against the full ~10-person team size before deciding this is the
+long-term CMS.
+
+1. Push this repo to GitHub first (see above)
+2. Go to **app.tina.io** and sign up / log in
+3. **Create a new project → Import an existing repo**, pick
+   `gthm1/gd-multitenant-demo`
+4. Tina Cloud will detect `tina/config.ts` automatically
+5. Copy the generated **Client ID** and **Read-only token** from the
+   project's Overview page
+6. Locally: `cp .env.local.example .env.local` and paste those two values in
+7. Run `npm run tina:dev` — this starts Docusaurus alongside Tina's local
+   editor, reachable at `http://localhost:3000/admin/index.html`
+8. Log in with your Tina Cloud account, browse to a doc, and edit — changes
+   save straight to the markdown files in `content-source/`
+
+For a hosted (non-local) editing environment for your team, the same
+`NEXT_PUBLIC_TINA_CLIENT_ID` / `TINA_TOKEN` env vars get set on a Netlify (or
+Vercel) deployment that runs `npm run tina:build` instead of the production
+`build:all` — kept as a **separate** deployment from the public/customer
+Netlify site, consistent with the isolation principle above.
+
+### Swapping CMS later
+
+Content lives as plain markdown + frontmatter in `content-source/`, which
+is portable across CMS tools — Tina, Dhub, or Decap all read/write the same
+files. Only the CMS's own config/schema (`tina/config.ts` here) is
+tool-specific and would need rewriting if the CMS changes; the content
+itself would not need migrating.
+
 
 ```
 npm install
