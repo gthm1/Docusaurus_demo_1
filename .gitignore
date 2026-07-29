@@ -6,3 +6,6 @@ deploy
 docs
 .DS_Store
 .env.local
+tina/__generated__
+admin/
+tina-admin-build/
