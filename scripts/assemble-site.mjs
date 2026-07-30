@@ -1,16 +1,21 @@
 #!/usr/bin/env node
 /**
- * Combines the three isolated builds (internal, customer-acme, customer-beta)
- * into a single deploy/ directory matching Netlify's publish root, then
- * writes the shared-surface protections:
+ * Combines the two customer builds (customer-acme, customer-beta) into a
+ * single deploy/ directory matching Netlify's publish root, then writes the
+ * shared-surface protections:
  *   - deploy/index.html: a neutral landing page. Does NOT list customer
  *     paths/slugs (that would defeat the "unguessable link" model).
  *   - deploy/robots.txt: disallow everything, so search engines never crawl
  *     or index a customer path, which would otherwise make an "unguessable"
  *     link guessable via a Google cache.
- *   - deploy/_headers: Basic Auth applied ONLY to /docs/internal/* — no
- *     directory index is generated for /docs/ itself, so there's no
- *     browsable listing of which customer folders exist.
+ *
+ * The internal staff build is deployed SEPARATELY to Cloudflare Pages,
+ * gated by Cloudflare Access (free for teams under 50 users) — Netlify's
+ * Basic-Auth-via-_headers feature turned out to be a Pro-plan-only
+ * capability, so staff auth moved to a host where a real free tier covers
+ * it. This also means Netlify's shared surface here only ever has to
+ * protect customer-vs-customer isolation, not staff-vs-customer — one
+ * less thing that could be misconfigured.
  */
 import fs from "fs";
 import path from "path";
@@ -35,7 +40,6 @@ function copyDir(src, dest) {
 }
 
 const targets = [
-  { dir: "internal", destSub: "docs/internal" },
   { dir: "customer-acme", destSub: "docs/acme" },
   { dir: "customer-beta", destSub: "docs/beta" },
 ];
@@ -77,14 +81,16 @@ Disallow: /
 `
 );
 
-// _headers: Basic Auth scoped ONLY to /docs/internal/*. Customer paths get
-// no auth challenge (no-login requirement) and, just as importantly, no
-// directory index — Netlify does not auto-generate folder listings, so
-// /docs/ itself resolves to nothing browsable.
+// _headers: no auth directive needed here anymore — internal moved to
+// Cloudflare Pages/Access. Kept as a minimal security-headers file so
+// customer paths still get sane defaults (and so re-adding a rule later,
+// if ever needed, has an obvious place to go).
 fs.writeFileSync(
   path.join(DEPLOY, "_headers"),
-  `/docs/internal/*
-  Basic-Auth: demo:letmein
+  `/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
 `
 );
 
@@ -104,10 +110,11 @@ fs.writeFileSync(
 `
 );
 
-console.log("\nAssembled deploy/ directory:");
-console.log("  /                 -> neutral landing page (no customer links)");
-console.log("  /docs/internal/*  -> Basic Auth protected, full staff tree");
-console.log("  /docs/acme/*      -> no login, Acme-only public content");
-console.log("  /docs/beta/*      -> no login, Beta-only public content");
-console.log("  /docs/            -> no index, nothing browsable");
-console.log("\nDemo credentials for internal: demo / letmein (change before real use)");
+console.log("\nAssembled deploy/ directory (Netlify — customer sites only):");
+console.log("  /             -> neutral landing page (no customer links)");
+console.log("  /docs/acme/*  -> no login, Acme-only public content");
+console.log("  /docs/beta/*  -> no login, Beta-only public content");
+console.log("  /docs/        -> no index, nothing browsable");
+console.log("\nInternal staff site deploys SEPARATELY to Cloudflare Pages,");
+console.log("gated by Cloudflare Access — see multi-build-output/internal/");
+console.log("and DEMO_WALKTHROUGH.md for the Cloudflare setup steps.");

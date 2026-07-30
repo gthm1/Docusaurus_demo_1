@@ -1,12 +1,3 @@
 [build]
-  command = "npm run build:all"
+  command = "npm run build:netlify"
   publish = "deploy"
-
-# Belt-and-braces: even though scripts/assemble-site.mjs already writes a
-# blocking _headers file with Basic Auth scoped to /docs/internal/*, define
-# it here too so Netlify's own header handling is explicit and doesn't
-# depend solely on a generated file surviving every build.
-[[headers]]
-  for = "/docs/internal/*"
-  [headers.values]
-    Basic-Auth = "demo:letmein"

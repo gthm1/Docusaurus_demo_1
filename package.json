@@ -15,6 +15,8 @@
     "build:internal": "node scripts/prepare-and-build.mjs internal",
     "build:acme": "node scripts/prepare-and-build.mjs customer acme",
     "build:beta": "node scripts/prepare-and-build.mjs customer beta",
+    "build:netlify": "npm run build:acme && npm run build:beta && node scripts/assemble-site.mjs",
+    "build:cloudflare": "npm run build:internal",
     "build:all": "npm run build:internal && npm run build:acme && npm run build:beta && node scripts/assemble-site.mjs",
     "tina:dev": "tinacms dev -c \"docusaurus start\"",
     "tina:build": "tinacms build"

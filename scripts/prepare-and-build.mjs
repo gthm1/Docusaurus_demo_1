@@ -132,7 +132,10 @@ if (includedCount === 0) {
 }
 
 // ---- 3. Build with isolated env + outDir ----
-const baseUrl = mode === "internal" ? "/docs/internal/" : `/docs/${customerArg}/`;
+// Internal now deploys to its own dedicated Cloudflare Pages site (gated
+// by Cloudflare Access), so it lives at the site root, not a /docs/internal/
+// subpath. Customer builds stay on Netlify as path-based deploys.
+const baseUrl = mode === "internal" ? "/" : `/docs/${customerArg}/`;
 const outDir = path.join(OUTPUTS_DIR, target);
 
 process.env.DOCS_BASE_URL = baseUrl;

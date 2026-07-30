@@ -10,9 +10,12 @@ The refined requirement had three parts:
 3. **Mixed visibility within a customer's own section** — some pages public
    to that customer, some staff-only, coexisting in the same customer area
 
-This demo proves all three using one GitHub repo, one Netlify site, and a
-single tagged content source — while keeping isolation as a build-time
-guarantee rather than a runtime access-control check.
+This demo proves all three using one GitHub repo, a single tagged content
+source, and **two hosting providers split by audience**: Cloudflare Pages
+(internal staff, gated by Cloudflare Access) and Netlify (customer sites,
+no login). Isolation between customer builds is a build-time guarantee
+either way — the split only changed *where* the internal build lives and
+*how* it's gated.
 
 ## Architecture
 
@@ -80,68 +83,112 @@ Same folder, same customer, mixed visibility — exactly the requirement.
 Staff browsing the internal site see all five pages in one place. Acme's own
 site, built from the same source, only contains three of them.
 
-## One deployment, three paths
+## Two hosts, split by audience
 
-Because of the Netlify credit constraint, this demo uses **one Netlify
-site**, not one site per tenant. All three builds are assembled into a single
-`deploy/` directory and published together:
+This changed partway through building the demo, worth explaining why.
+
+The original plan hosted all three builds on one Netlify site, with the
+internal path gated by Basic Auth via a `_headers` file. In practice, that
+turned out not to work: **Netlify's `Basic-Auth` header directive is a
+Pro-plan-only feature** — on the Free plan it's silently ignored, no error,
+just no auth prompt. Confirmed directly against Netlify's own docs after
+testing the live deploy and finding `/docs/internal/` fully open with no
+password challenge.
+
+Two fixes were available: upgrade the Netlify team to Pro (~$20/month), or
+move the internal build to a host with a genuinely free auth layer. Went
+with the second, since **Cloudflare Access already has a free tier for up to
+50 users** — comfortably covers Minnovation's ~10-person staff team — and
+Cloudflare Access was already the leading long-term SSO candidate in this
+project's notes anyway. This isn't a workaround; it's closer to the actual
+production plan than Basic Auth ever was.
+
+**Current split:**
+
+| Build | Host | Access |
+|---|---|---|
+| `internal` | Cloudflare Pages | Cloudflare Access (free, up to 50 users) |
+| `customer-acme` | Netlify | no login, obscure path |
+| `customer-beta` | Netlify | no login, obscure path |
+
+The internal build now deploys at its own domain root (`baseUrl: /`)
+instead of a `/docs/internal/` subpath, since it's a dedicated site rather
+than sharing Netlify with the customer builds. Nothing about the content
+filtering or isolation logic changed — only where the internal output ships
+and how it's gated.
+
+### Netlify: customer sites only
 
 ```
 deploy/
-  index.html              neutral landing page — no customer links, no hints
-  robots.txt               Disallow: / (customer links must never become
-                            crawlable/searchable, or "unguessable" stops
-                            being true)
-  _headers                  Basic-Auth scoped ONLY to /docs/internal/*
+  index.html      neutral landing page — no customer links, no hints
+  robots.txt       Disallow: / (customer links must never become
+                    crawlable/searchable, or "unguessable" stops being true)
+  _headers          baseline security headers only (X-Frame-Options etc.) —
+                    no auth directive needed here anymore
   docs/
-    index.html             explicit "Not Found" page — blocks directory
-                            listing even on hosts that auto-list folders
-    internal/              <- Basic Auth required
-    acme/                  <- no login, only reachable if you have the link
-    beta/                  <- no login, only reachable if you have the link
+    index.html     explicit "Not Found" page — blocks directory listing
+                    even on hosts that auto-list folders
+    acme/          <- no login, only reachable if you have the link
+    beta/          <- no login, only reachable if you have the link
 ```
 
-Visiting `/docs/` itself resolves to a blocking page, not a list of
-customers. There is no page anywhere in the deployment that links to or
-enumerates `/docs/acme/` or `/docs/beta/` — those paths only work if you
-already have the URL, which is the same "obscure link" model the current
-GitBook setup uses per-space.
+Visiting `/docs/` resolves to a blocking page, not a list of customers.
+Nothing anywhere in the deployment links to or enumerates `/docs/acme/` or
+`/docs/beta/` — same "obscure link" model as the current GitBook setup.
 
-## Honest tradeoff for the manager writeup
-
-This is **one shared deployment surface**, not one isolated site per
-customer (like GitBook, or like giving each customer their own Netlify
-site). That was a deliberate choice to fit the current Netlify plan's
-constraints. The consequence:
-
-- **Cheaper and simpler to operate** — one site, one deploy, no per-customer
-  infrastructure to provision as customer count grows
-- **But isolation depends on careful configuration** — the `_headers` file,
-  `robots.txt`, and blocking pages are all doing the isolation work. A future
-  misconfiguration (e.g. someone accidentally adding a sitemap or an index
-  page that lists paths) could weaken it. A one-site-per-customer model (or
-  GitBook's native per-space hosting) doesn't have this shared-surface risk
-  at all, because there's no shared infrastructure to misconfigure
-- If customer count grows a lot, the per-customer path model also means
-  every customer add requires a new build target + a new deploy step (though
-  this is scriptable — adding a customer is one new folder in
-  `content-source/customers/` plus one line in the build script's target
-  list)
-
-## How to deploy
-
+**Netlify deploy steps:**
 1. Push this repo to GitHub (`gthm1` account)
-2. In Netlify: **Add new site → Import an existing project → Deploy with
+2. Netlify: **Add new site → Import an existing project → Deploy with
    GitHub**, select this repo
-3. Netlify reads `netlify.toml` automatically:
-   - Build command: `npm run build:all` (runs all three isolated builds,
-     then assembles them into `deploy/`)
-   - Publish directory: `deploy`
-4. Deploy. Demo credentials for the internal path are `demo` / `letmein` —
-   **change these before this touches anything real**, and note the repo is
-   public, so anyone can read the demo credentials from source. For a real
-   deployment, this is where Cloudflare Access would replace Basic Auth
-   entirely, same as the two-tier demo before it.
+3. Netlify reads `netlify.toml` automatically — build command
+   `npm run build:netlify` (builds Acme + Beta only, then assembles
+   `deploy/`), publish directory `deploy`
+
+### Cloudflare Pages: internal staff site
+
+**Setup steps:**
+1. Go to the Cloudflare dashboard → **Workers & Pages → Create → Pages →
+   Connect to Git**, select this same GitHub repo
+2. Build settings:
+   - Framework preset: **Docusaurus** (or None, if not offered — the
+     explicit build command below covers it either way)
+   - Build command: `npm run build:cloudflare`
+   - Build output directory: `multi-build-output/internal`
+3. Deploy. This gives a `*.pages.dev` URL, fully open at this point — the
+   gate comes from Access, added next.
+4. Go to **Zero Trust → Access → Applications → Add an application →
+   Self-hosted**
+5. Set the application domain to the `*.pages.dev` URL (or a custom
+   subdomain once one's mapped, e.g. `internal.minnovation.com.au`)
+6. Add a policy — for the demo, an **Include** rule on staff email
+   addresses (or an email domain match, e.g. `*@minnovation.com.au`) is
+   the simplest starting policy. This is real per-person gating, not a
+   single shared password — a meaningful upgrade over the Basic Auth demo
+   credential model.
+7. Visiting the site now prompts for Cloudflare Access login (email code or
+   your chosen identity provider) before serving any content at all —
+   the gate sits in front of Cloudflare's edge, not inside the site.
+
+### Honest tradeoff for the manager writeup
+
+Customer sites remain **one shared Netlify deployment surface**, not one
+isolated site per customer — a deliberate choice to fit budget constraints,
+carried over from the earlier decision:
+
+- **Cheaper and simpler to operate** — one site, one deploy, no
+  per-customer infrastructure to provision as customer count grows
+- **But isolation depends on careful configuration** — `robots.txt` and
+  blocking pages are doing real work here. A future misconfiguration (e.g.
+  someone re-adding a sitemap, or an index page that lists paths) could
+  weaken it. A one-site-per-customer model (or GitBook's native per-space
+  hosting) doesn't carry this shared-surface risk, because there's no
+  shared infrastructure to misconfigure
+- The internal/customer split onto separate hosts is a net isolation
+  *improvement* over the original single-site plan, incidentally: staff
+  auth and customer content no longer share any deployment surface at all,
+  which is a stronger boundary than Basic Auth on a shared site would ever
+  have been
 
 ## Editing content: TinaCMS
 
@@ -181,9 +228,11 @@ and after publishing this fix.
 
 The practical implication: Tina editing happens in its own environment
 (local `npm run tina:dev`, or a protected staff-only deployment), completely
-separate from the three production static builds. Editors save through Tina
-→ Tina commits to git → the next `npm run build:all` picks up the change and
-regenerates all three isolated sites from the updated source.
+separate from the production static builds — which, since the hosting
+split, now means it's also separate from *both* the Cloudflare and Netlify
+deployments. Editors save through Tina → Tina commits to git → the next
+`npm run build:internal` / `npm run build:netlify` (or CI running the same)
+regenerates the affected isolated sites from the updated source.
 
 ### Tina Cloud setup (one-time, manual)
 
@@ -221,12 +270,15 @@ itself would not need migrating.
 
 ```
 npm install
-npm run build:internal   # builds just the staff site
-npm run build:acme       # builds just Acme's site
-npm run build:beta       # builds just Beta's site
-npm run build:all        # builds all three + assembles deploy/
+npm run build:internal    # builds just the staff site (baseUrl: /)
+npm run build:acme        # builds just Acme's site
+npm run build:beta        # builds just Beta's site
+npm run build:netlify     # builds Acme + Beta + assembles deploy/ (what Netlify runs)
+npm run build:cloudflare  # alias for build:internal (what Cloudflare Pages runs)
+npm run build:all         # builds all three locally, for testing everything at once
 ```
 
 To add a new customer: create `content-source/customers/<slug>/`, tag files
 with `customer: <slug>`, add a `build:<slug>` script following the existing
-pattern, and add the target to `scripts/assemble-site.mjs`'s `targets` array.
+pattern, and add the target to `scripts/assemble-site.mjs`'s `targets` array
+and to `build:netlify`.
