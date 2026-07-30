@@ -18,6 +18,12 @@
  *   4. Runs `docusaurus build` with an isolated build directory so that no
  *      sidebar JSON, search index, or build artifact from one target can
  *      leak into another target's output.
+ *
+ * All three targets deploy as SEPARATE Cloudflare Pages projects (see
+ * DEMO_WALKTHROUGH.md) — internal gated by Cloudflare Access, Acme/Beta
+ * ungated but each on its own project/subdomain. No shared deploy root,
+ * so isolation doesn't depend on any blocking pages or robots.txt tricks —
+ * there's no shared surface left to misconfigure.
  */
 
 import fs from "fs";
@@ -132,10 +138,12 @@ if (includedCount === 0) {
 }
 
 // ---- 3. Build with isolated env + outDir ----
-// Internal now deploys to its own dedicated Cloudflare Pages site (gated
-// by Cloudflare Access), so it lives at the site root, not a /docs/internal/
-// subpath. Customer builds stay on Netlify as path-based deploys.
-const baseUrl = mode === "internal" ? "/" : `/docs/${customerArg}/`;
+// All three targets now deploy as separate, dedicated Cloudflare Pages
+// projects (internal gated by Cloudflare Access; Acme/Beta ungated but
+// each on its own unguessable *.pages.dev subdomain). No site shares a
+// domain with another, so every build lives at its own root — no more
+// /docs/<slug>/ subpath juggling.
+const baseUrl = "/";
 const outDir = path.join(OUTPUTS_DIR, target);
 
 process.env.DOCS_BASE_URL = baseUrl;
