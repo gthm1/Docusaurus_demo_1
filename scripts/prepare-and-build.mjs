@@ -18,6 +18,13 @@
  *   4. Runs `docusaurus build` with an isolated build directory so that no
  *      sidebar JSON, search index, or build artifact from one target can
  *      leak into another target's output.
+ *   5. Writes wrangler.jsonc pointing at this target's own output folder —
+ *      needed because Cloudflare's dashboard now routes Git-connected
+ *      static sites through its Workers-with-static-assets deploy flow,
+ *      which reads this file to know what to publish. Regenerated fresh
+ *      per build since Wrangler config doesn't support env var
+ *      interpolation, and each of the three Cloudflare projects only runs
+ *      one of these npm scripts, so there's no cross-target conflict.
  *
  * All three targets deploy as SEPARATE Cloudflare Pages projects (see
  * DEMO_WALKTHROUGH.md) — internal gated by Cloudflare Access, Acme/Beta
@@ -157,4 +164,28 @@ execSync(
   { cwd: ROOT, stdio: "inherit", env: process.env }
 );
 
+// ---- 4. Write wrangler.jsonc for this target ----
+// Cloudflare's dashboard "Deploy command" step (npx wrangler deploy) reads
+// this file to know which static folder to publish. Wrangler config values
+// are literals — no ${VAR} interpolation — so instead of one static file
+// trying to serve three targets, each target's build command REWRITES this
+// file to point at its own output folder right before the deploy step runs.
+// This is safe because each Cloudflare project only ever runs ONE of these
+// three npm scripts, so there's no race between targets.
+const wranglerConfig = {
+  $schema: "./node_modules/wrangler/config-schema.json",
+  name: `gd-multitenant-demo-${target}`,
+  compatibility_date: "2026-07-29",
+  assets: {
+    directory: `./multi-build-output/${target}/`,
+    not_found_handling: "404-page",
+  },
+};
+
+fs.writeFileSync(
+  path.join(ROOT, "wrangler.jsonc"),
+  JSON.stringify(wranglerConfig, null, 2) + "\n"
+);
+
+console.log(`Wrote wrangler.jsonc for target: ${target}`);
 console.log(`=== Done: ${target} -> ${outDir} ===\n`);

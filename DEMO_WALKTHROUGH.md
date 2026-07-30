@@ -84,7 +84,7 @@ Same folder, same customer, mixed visibility — exactly the requirement.
 Staff browsing the internal site see all five pages in one place. Acme's own
 site, built from the same source, only contains three of them.
 
-## Three Cloudflare Pages projects, not shared hosting
+## Three Cloudflare projects, not shared hosting
 
 This went through two revisions worth explaining, since each one taught
 something real about the tradeoffs.
@@ -110,8 +110,8 @@ separate projects:**
 | Project | Content | Access |
 |---|---|---|
 | `internal` | everything: all customers' public + staff-only pages, plus general internal docs | Cloudflare Access (free, up to 50 users) |
-| `customer-acme` | only Acme's public pages | none — reachable only via its own unguessable `*.pages.dev` link |
-| `customer-beta` | only Beta's public pages | none — reachable only via its own unguessable `*.pages.dev` link |
+| `customer-acme` | only Acme's public pages | none — reachable only via its own unguessable `*.workers.dev` link |
+| `customer-beta` | only Beta's public pages | none — reachable only via its own unguessable `*.workers.dev` link |
 
 Cloudflare Pages' free tier has no credit meter at all — **unlimited
 bandwidth, 500 builds/month included**, so iterating on this demo (or
@@ -125,6 +125,24 @@ to leak across in the first place.
 
 Every build now uses `baseUrl: /`, since each one is the entire site for
 its project rather than a subpath sharing a domain with siblings.
+
+### A note on Cloudflare's current dashboard
+
+Cloudflare has been steering its "Create application" flow toward
+**Workers** rather than classic Pages — the old "Pages" tab is effectively
+gone from the default path, even though Pages projects still work fine for
+existing users. The Git-connect flow now defaults to "Create a Worker,"
+asks for a **Deploy command** (`npx wrangler deploy`) instead of a build
+output directory field, and expects a `wrangler.jsonc` config file in the
+repo to know what to publish.
+
+This repo includes that file (`wrangler.jsonc`) already, generated fresh
+by each `npm run build:*` script right after it builds — since Wrangler
+config values can't reference environment variables to pick a folder
+dynamically, each target's build command rewrites the file to point at its
+own output before the deploy step runs. This is safe because each
+Cloudflare project only ever runs one of the three build commands, so
+there's no conflict between targets sharing the file.
 
 ### Setup steps (repeat per project — internal, acme, beta)
 
@@ -147,17 +165,25 @@ its project rather than a subpath sharing a domain with siblings.
      sign in via `gh auth login` if the GitHub CLI is installed
    - If the repo already exists and a remote is already configured, just
      run `git push` from inside the project folder to push this update
-2. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to
-   Git**, select this repo
-3. Build settings for that project:
-   - Build command: `npm run build:internal` (or `build:acme` / `build:beta`
-     depending on which project this is)
-   - Build output directory: `multi-build-output/internal` (or
-     `multi-build-output/customer-acme` / `customer-beta`)
-4. Deploy — gives a `*.pages.dev` URL immediately
+2. Cloudflare dashboard → **Workers & Pages → Create application**
+3. Click **Continue with GitHub** and select this repo (`Docusaurus_demo_1`)
+4. On **"Set up your application,"** give it a project name that makes it
+   obvious which target this is (e.g. `docusaurus-demo-internal`,
+   `docusaurus-demo-acme`, `docusaurus-demo-beta`) — the field defaults to
+   the repo name, which is fine for the first project but needs changing
+   for the other two so they don't collide
+5. On the build settings screen:
+   - **Build command**: `npm run build:internal` (or `build:acme` /
+     `build:beta` depending on which project this is)
+   - **Deploy command**: leave as the default `npx wrangler deploy` — this
+     reads the `wrangler.jsonc` that the build command just rewrote, so no
+     manual output-directory field is needed here
+6. Deploy — gives a `*.workers.dev` URL immediately (functionally the same
+   as the old `*.pages.dev` URLs — just a different subdomain suffix now
+   that this flow runs through Workers)
 
-Repeat for all three — same repo, same source, different build command and
-output directory per project, three independent URLs.
+Repeat for all three — same repo, same source, different project name and
+build command each time, three independent URLs.
 
 ### Gating internal with Cloudflare Access
 
@@ -166,7 +192,7 @@ Only needed on the `internal` project — leave `customer-acme` and
 
 1. **Zero Trust → Access → Applications → Add an application →
    Self-hosted**
-2. Set the application domain to the internal project's `*.pages.dev` URL
+2. Set the application domain to the internal project's `*.workers.dev` URL
    (or a custom subdomain once one's mapped, e.g.
    `internal.minnovation.com.au`)
 3. Add a policy — for the demo, an **Include** rule on staff email
