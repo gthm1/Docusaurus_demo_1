@@ -132,11 +132,11 @@ its project rather than a subpath sharing a domain with siblings.
    since they all build from the same repo. If the repo doesn't exist on
    GitHub yet:
    - Go to **github.com/new**, sign in as `gthm1`, name it (e.g.
-     `gd-multitenant-demo`), leave it empty — no README, no `.gitignore`,
+     `Docusaurus_demo_1`), leave it empty — no README, no `.gitignore`,
      no license — then **Create repository**
    - Locally, from inside this project folder, in PowerShell:
      ```powershell
-     git remote add origin https://github.com/gthm1/gd-multitenant-demo.git
+     git remote add origin https://github.com/gthm1/Docusaurus_demo_1.git
      git branch -M main
      git push -u origin main
      ```
@@ -256,7 +256,7 @@ long-term CMS.
 1. Push this repo to GitHub first (see above)
 2. Go to **app.tina.io** and sign up / log in
 3. **Create a new project → Import an existing repo**, pick
-   `gthm1/gd-multitenant-demo`
+   `gthm1/Docusaurus_demo_1`
 4. Tina Cloud will detect `tina/config.ts` automatically
 5. Copy the generated **Client ID** and **Read-only token** from the
    project's Overview page
