@@ -129,7 +129,24 @@ its project rather than a subpath sharing a domain with siblings.
 ### Setup steps (repeat per project — internal, acme, beta)
 
 1. Push this repo to GitHub (`gthm1` account) — one push covers all three,
-   since they all build from the same repo
+   since they all build from the same repo. If the repo doesn't exist on
+   GitHub yet:
+   - Go to **github.com/new**, sign in as `gthm1`, name it (e.g.
+     `gd-multitenant-demo`), leave it empty — no README, no `.gitignore`,
+     no license — then **Create repository**
+   - Locally, from inside this project folder, in PowerShell:
+     ```powershell
+     git remote add origin https://github.com/gthm1/gd-multitenant-demo.git
+     git branch -M main
+     git push -u origin main
+     ```
+   - If prompted for credentials, GitHub no longer accepts your account
+     password over HTTPS — use a **Personal Access Token** instead
+     (GitHub → Settings → Developer settings → Personal access tokens →
+     Generate new token, paste it in place of the password when asked), or
+     sign in via `gh auth login` if the GitHub CLI is installed
+   - If the repo already exists and a remote is already configured, just
+     run `git push` from inside the project folder to push this update
 2. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to
    Git**, select this repo
 3. Build settings for that project:
