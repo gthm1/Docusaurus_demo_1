@@ -1,9 +1,9 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "gd-multitenant-demo-internal",
+  "name": "gd-multitenant-demo-customer-acme",
   "compatibility_date": "2026-07-29",
   "assets": {
-    "directory": "./multi-build-output/internal/",
+    "directory": "./multi-build-output/customer-acme/",
     "not_found_handling": "404-page"
   }
 }

@@ -15,7 +15,17 @@ export default defineConfig({
 
   build: {
     outputFolder: "admin",
-    publicFolder: "tina-admin-build",
+    // Local dev (npm run tina:dev) needs the admin bundle inside static/,
+    // since Docusaurus's dev server only serves files from there — nothing
+    // outside static/ is reachable at localhost:3000/admin/index.html.
+    //
+    // Production builds (npm run build:internal / build:acme / build:beta)
+    // must NOT use static/ here, because Docusaurus copies static/ verbatim
+    // into every build with no filtering — that would leak the Tina admin
+    // bundle into the customer-facing Acme/Beta sites, letting anyone with
+    // the link discover and potentially reach the CMS. TINA_LOCAL_DEV is
+    // set only by the tina:dev script below, never by the build:* scripts.
+    publicFolder: process.env.TINA_LOCAL_DEV ? "static" : "tina-admin-build",
   },
   media: {
     tina: {

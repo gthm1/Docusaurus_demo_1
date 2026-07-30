@@ -16,7 +16,7 @@
     "build:acme": "node scripts/prepare-and-build.mjs customer acme",
     "build:beta": "node scripts/prepare-and-build.mjs customer beta",
     "build:all": "npm run build:internal && npm run build:acme && npm run build:beta",
-    "tina:dev": "tinacms dev -c \"docusaurus start\"",
+    "tina:dev": "cross-env TINA_LOCAL_DEV=1 tinacms dev -c \"docusaurus start\"",
     "tina:build": "tinacms build"
   },
   "dependencies": {
@@ -33,7 +33,8 @@
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.9.2",
-    "@docusaurus/types": "3.9.2"
+    "@docusaurus/types": "3.9.2",
+    "cross-env": "^10.1.0"
   },
   "browserslist": {
     "production": [
