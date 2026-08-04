@@ -15,31 +15,24 @@ export default defineConfig({
 
   build: {
     outputFolder: "admin",
-    // Three distinct output targets, chosen by env vars set per script:
+    // Two output targets:
     //
     // 1. Local dev (npm run tina:dev, TINA_LOCAL_DEV=1) — needs the admin
     //    bundle inside static/, since Docusaurus's dev server only serves
     //    files from there.
     //
-    // 2. Production internal build (npm run build:internal, which now also
-    //    runs `tinacms build` afterward) — the editor is meant to be
-    //    reachable at docusaurus-demo-internal.../admin/index.html,
-    //    already behind Cloudflare Access. Output goes straight into
-    //    multi-build-output/internal, the same folder Cloudflare deploys
-    //    for that project.
-    //
-    // 3. Production customer builds (build:acme / build:beta) — MUST stay
-    //    fully isolated in tina-admin-build/, well away from static/ or
-    //    any customer output folder. An Acme or Beta visitor should have
-    //    no way to even discover the CMS exists. TINA_BUILD_TARGET is only
-    //    ever "internal" when this build is explicitly the internal one;
-    //    for customer builds it's unset, so this falls through to the
-    //    isolated folder by default — the safe default is "don't expose."
-    publicFolder: process.env.TINA_LOCAL_DEV
-      ? "static"
-      : process.env.TINA_BUILD_TARGET === "internal"
-        ? "multi-build-output/internal"
-        : "tina-admin-build",
+    // 2. Everything else (production builds of any kind) — outputs to an
+    //    isolated tina-admin-build/ folder, well away from static/ or any
+    //    Docusaurus output folder. This used to also cover a special
+    //    "internal" mode that dropped the bundle straight into
+    //    multi-build-output/internal (Option B: fold the editor into the
+    //    internal docs site) — reverted after that approach hit a hard
+    //    memory ceiling on Cloudflare's build containers running the full
+    //    Docusaurus webpack build and Tina's GraphQL codegen back-to-back
+    //    in one build. The editor now lives on its own dedicated
+    //    Cloudflare project (Option A) that runs ONLY this Tina build, no
+    //    Docusaurus step at all — see scripts and package.json.
+    publicFolder: process.env.TINA_LOCAL_DEV ? "static" : "tina-admin-build",
   },
   media: {
     tina: {

@@ -12,10 +12,11 @@
     "serve": "docusaurus serve",
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
-    "build:internal": "node scripts/prepare-and-build.mjs internal && cross-env TINA_BUILD_TARGET=internal tinacms build",
+    "build:internal": "node scripts/prepare-and-build.mjs internal",
     "build:acme": "node scripts/prepare-and-build.mjs customer acme",
     "build:beta": "node scripts/prepare-and-build.mjs customer beta",
     "build:all": "npm run build:internal && npm run build:acme && npm run build:beta",
+    "build:editor": "tinacms build",
     "tina:dev": "cross-env TINA_LOCAL_DEV=1 tinacms dev -c \"docusaurus start\"",
     "tina:build": "tinacms build"
   },
