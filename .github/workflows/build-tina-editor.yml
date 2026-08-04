@@ -67,6 +67,22 @@ jobs:
             exit 1
           fi
 
+          # Copy the build output somewhere OUTSIDE the repo first. This
+          # matters: `git rm -rf .` only untracks files from git's index,
+          # it does NOT delete untracked files (like node_modules/, which
+          # is gitignored and therefore untracked) from disk. Leaving them
+          # in place meant the later `git add -A` picked up node_modules
+          # and other build artifacts wholesale — 111,960 files, including
+          # .git-adjacent pack files over Cloudflare's 25MB asset limit.
+          # Staging the real output outside the repo, then physically
+          # wiping the whole working directory, avoids that class of bug
+          # entirely rather than trying to rm -rf increasingly specific
+          # things and hoping nothing else sneaks in.
+          STAGE_DIR="$RUNNER_TEMP/tina-editor-output"
+          rm -rf "$STAGE_DIR"
+          mkdir -p "$STAGE_DIR"
+          cp -r "$BUILD_DIR"/* "$STAGE_DIR"/
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
@@ -77,9 +93,14 @@ jobs:
           # a clean, single-purpose branch with no source code on it at
           # all, just the static built files it needs to serve.
           git checkout --orphan tina-editor-build
-          git rm -rf . > /dev/null 2>&1 || true
-          cp -r "$BUILD_DIR"/* .
-          rm -rf "$BUILD_DIR"
+
+          # Physically empty the working directory (everything, tracked
+          # or not) rather than relying on git rm, which only affects the
+          # index. find -delete here removes real files from disk,
+          # including anything gitignored like node_modules.
+          find . -mindepth 1 -maxdepth 1 -not -name '.git' -exec rm -rf {} +
+
+          cp -r "$STAGE_DIR"/* .
 
           # This branch has no build step on Cloudflare's side (that's the
           # whole point — no build container, no memory ceiling to hit).
