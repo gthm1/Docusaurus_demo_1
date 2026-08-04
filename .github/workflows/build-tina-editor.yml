@@ -83,6 +83,13 @@ jobs:
           mkdir -p "$STAGE_DIR"
           cp -r "$BUILD_DIR"/* "$STAGE_DIR"/
 
+          # Tina's own build tooling drops a .gitignore inside the generated
+          # admin/ folder (ignoring index.html and assets/) — sensible advice
+          # for a *source* repo where you don't want build output checked in,
+          # but wrong here: this orphan branch's entire purpose is to serve
+          # index.html and assets/, so that .gitignore must not survive.
+          find "$STAGE_DIR" -name ".gitignore" -delete
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
