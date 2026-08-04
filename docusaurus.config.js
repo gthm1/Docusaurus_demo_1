@@ -65,6 +65,24 @@ const config = {
     ],
   ],
 
+// Offline/local search — builds its index at build time from whatever
+  // ended up in THIS build's docs/ folder only. Since each of the three
+  // targets (internal/acme/beta) is a fully separate build with its own
+  // filtered docs/, the search index can only ever contain that target's
+  // own pages — no third-party service involved either, so search queries
+  // never leave the site.
+  plugins: [
+    [
+      require.resolve('@easyops-cn/docusaurus-search-local'),
+      /** @type {import('@easyops-cn/docusaurus-search-local').PluginOptions} */
+      ({
+        hashed: true,
+        indexBlog: false,
+        indexPages: false,
+      }),
+    ],
+  ],
+
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
