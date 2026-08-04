@@ -1,0 +1,102 @@
+name: Build Tina Editor
+
+# Runs whenever content-source/ or the Tina schema changes on main — those
+# are the only things that should ever require rebuilding the editor
+# bundle. Also runnable manually via workflow_dispatch for one-off
+# rebuilds (e.g. after a Tina Cloud client ID rotation).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "content-source/**"
+      - "tina/**"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+# Prevents overlapping runs from racing to push to the same output branch.
+concurrency:
+  group: build-tina-editor
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Public repo -> standard GitHub-hosted runner gives 4 vCPU / 16GB RAM,
+    # free and unlimited. This is the whole point of moving the build
+    # here: Cloudflare's own Workers Builds containers hit a hard memory
+    # ceiling running `tinacms build` alone (confirmed — it crashed with
+    # "JavaScript heap out of memory" even with no Docusaurus build
+    # running alongside it), and that appears to be a known upstream
+    # limitation in the Tina CLI's build tooling, not something fixable
+    # via a Node heap-size flag (community reports of the same crash
+    # persisting even after --max-old-space-size=8192).
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # needed to push the built output back to the repo
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Tina admin editor
+        env:
+          NEXT_PUBLIC_TINA_CLIENT_ID: ${{ secrets.TINA_CLIENT_ID }}
+          TINA_TOKEN: ${{ secrets.TINA_TOKEN }}
+        run: npm run build:editor
+        # Outputs to tina-admin-build/admin/index.html per tina/config.ts
+
+      - name: Publish built editor to output branch
+        run: |
+          set -e
+          BUILD_DIR="tina-admin-build"
+
+          if [ ! -d "$BUILD_DIR" ]; then
+            echo "Build output missing at $BUILD_DIR — aborting, nothing to publish."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Publish ONLY the build output to a dedicated orphan branch —
+          # deliberately not the same branch the three doc sites deploy
+          # from, so this workflow's own commits never trigger a rebuild
+          # of Acme/Beta/internal, and so Cloudflare's editor project has
+          # a clean, single-purpose branch with no source code on it at
+          # all, just the static built files it needs to serve.
+          git checkout --orphan tina-editor-build
+          git rm -rf . > /dev/null 2>&1 || true
+          cp -r "$BUILD_DIR"/* .
+          rm -rf "$BUILD_DIR"
+
+          # This branch has no build step on Cloudflare's side (that's the
+          # whole point — no build container, no memory ceiling to hit).
+          # It needs its own wrangler.jsonc pointing at the branch root,
+          # since there's no multi-build-output/<target>/ subfolder here.
+          printf '%s\n' \
+            '{' \
+            '  "$schema": "https://developers.cloudflare.com/pages/",' \
+            '  "name": "gd-multitenant-demo-editor",' \
+            '  "compatibility_date": "2026-07-29",' \
+            '  "assets": {' \
+            '    "directory": "./",' \
+            '    "not_found_handling": "404-page"' \
+            '  }' \
+            '}' \
+            > wrangler.jsonc
+
+          git add -A
+          git commit -m "Rebuild Tina editor bundle from ${GITHUB_SHA::7}"
+          git push --force origin tina-editor-build
