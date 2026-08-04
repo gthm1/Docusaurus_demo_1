@@ -32,9 +32,9 @@
     "tinacms": "^3.11.0"
   },
   "devDependencies": {
+    "@cmfcmf/docusaurus-search-local": "^2.0.1",
     "@docusaurus/module-type-aliases": "3.9.2",
     "@docusaurus/types": "3.9.2",
-    "@easyops-cn/docusaurus-search-local": "^0.55.3",
     "cross-env": "^10.1.0"
   },
   "browserslist": {

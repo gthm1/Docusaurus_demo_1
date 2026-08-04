@@ -17,6 +17,18 @@ const CUSTOMER_LABELS = {
   beta: 'Beta Industries',
 };
 
+// Real Cloudflare Workers domains per target. The placeholder used here
+// before (a fake example.com) was harmless for page rendering since most
+// links are relative, but it broke the search plugin's runtime asset-path
+// construction, which uses `url` + `baseUrl` to build absolute fetch URLs
+// for the search index — pointing search at the wrong origin entirely.
+const SITE_URLS = {
+  internal: 'https://docusaurus-demo-internal.gowthamreddy020598.workers.dev',
+  'customer-acme': 'https://docusaurus-demo-acme.gowthamreddy020598.workers.dev',
+  'customer-beta': 'https://docusaurus-demo-beta.gowthamreddy020598.workers.dev',
+};
+const siteUrl = SITE_URLS[BUILD_TARGET] || SITE_URLS.internal;
+
 const siteTitle = isCustomerBuild
   ? `Minnovation Docs — ${CUSTOMER_LABELS[customerSlug] || customerSlug}`
   : 'Minnovation Internal Docs';
@@ -31,7 +43,7 @@ const config = {
     v4: true,
   },
 
-  url: 'https://minnovation-multitenant-demo.example.com',
+  url: siteUrl,
   baseUrl: DOCS_BASE_URL,
 
   organizationName: 'gthm1',
@@ -65,18 +77,33 @@ const config = {
     ],
   ],
 
-// Offline/local search — builds its index at build time from whatever
-  // ended up in THIS build's docs/ folder only. Since each of the three
-  // targets (internal/acme/beta) is a fully separate build with its own
-  // filtered docs/, the search index can only ever contain that target's
-  // own pages — no third-party service involved either, so search queries
-  // never leave the site.
+  // Offline/local search — builds its index at build time from whatever
+  // ended up in THIS build's docs/ folder only. That's an important
+  // property given everything else in this project: since each of the
+  // three targets (internal/acme/beta) is a fully separate build with its
+  // own filtered docs/, the search index can only ever contain that
+  // target's own pages. There's no way for Acme's search to surface a
+  // Beta or internal-only page, because the plugin never sees them in the
+  // first place — same isolation guarantee as the rest of the site,
+  // extended to search without any extra work. This also avoids sending
+  // any search queries to a third-party service (e.g. Algolia), which
+  // matters since customer search terms shouldn't leave the build itself.
+  //
+  // Using @cmfcmf/docusaurus-search-local (the original), not the
+  // @easyops-cn fork — the fork silently failed to write its index file
+  // in this environment: build logs stopped right after "parsing
+  // documents" with no error and no search-index.json ever produced,
+  // reproducible across repeated builds and confirmed unrelated to our
+  // custom --out-dir wrapper (same failure with a completely plain
+  // `docusaurus build`). Switching packages fixed it outright — @cmfcmf
+  // writes its index correctly every time, confirmed with DEBUG logging
+  // showing "Index ... written to disk". Isolation re-verified against
+  // the working index: zero cross-tenant leakage either direction.
   plugins: [
     [
-      require.resolve('@easyops-cn/docusaurus-search-local'),
-      /** @type {import('@easyops-cn/docusaurus-search-local').PluginOptions} */
+      require.resolve('@cmfcmf/docusaurus-search-local'),
+      /** @type {any} */
       ({
-        hashed: true,
         indexBlog: false,
         indexPages: false,
       }),
