@@ -5,26 +5,36 @@
  */
 
 /* You can override the default Infima variables here. */
+/* Brand palette matched to Minnovation's existing GitBook docs
+   (minnovation-1.gitbook.io/alphax): blue accent (#1F6FEB family)
+   in place of the default Docusaurus green. */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-color-primary: #1f6feb;
+  --ifm-color-primary-dark: #1c64d4;
+  --ifm-color-primary-darker: #1a5ec7;
+  --ifm-color-primary-darkest: #164ea3;
+  --ifm-color-primary-light: #337aed;
+  --ifm-color-primary-lighter: #4482ef;
+  --ifm-color-primary-lightest: #6b9cf2;
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  /* GitBook's light theme reads a touch cooler/lighter than Infima's
+     default off-white — nudge background and sidebar tone to match. */
+  --ifm-navbar-background-color: #ffffff;
+  --ifm-background-color: #ffffff;
+  --ifm-menu-color-background-active: rgba(31, 111, 235, 0.08);
+  --ifm-menu-color-background-hover: rgba(31, 111, 235, 0.05);
 }
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
+  --ifm-color-primary: #4c8dfa;
+  --ifm-color-primary-dark: #2d78f8;
+  --ifm-color-primary-darker: #1c6df7;
+  --ifm-color-primary-darkest: #0f57d6;
+  --ifm-color-primary-light: #6ba2fb;
+  --ifm-color-primary-lighter: #7cadfc;
+  --ifm-color-primary-lightest: #a7c6fd;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }

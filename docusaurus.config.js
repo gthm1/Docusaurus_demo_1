@@ -126,7 +126,10 @@ const config = {
         items: [],
       },
       footer: {
-        style: 'dark',
+        // 'light' follows the active color mode instead of forcing a
+        // dark bar in light theme — matches GitBook's minimal, low-
+        // contrast footer treatment.
+        style: 'light',
         links: [],
         copyright: isCustomerBuild
           ? `Minnovation Technologies — Documentation for ${CUSTOMER_LABELS[customerSlug] || customerSlug}`
