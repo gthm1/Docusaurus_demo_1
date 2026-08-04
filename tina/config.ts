@@ -15,17 +15,31 @@ export default defineConfig({
 
   build: {
     outputFolder: "admin",
-    // Local dev (npm run tina:dev) needs the admin bundle inside static/,
-    // since Docusaurus's dev server only serves files from there — nothing
-    // outside static/ is reachable at localhost:3000/admin/index.html.
+    // Three distinct output targets, chosen by env vars set per script:
     //
-    // Production builds (npm run build:internal / build:acme / build:beta)
-    // must NOT use static/ here, because Docusaurus copies static/ verbatim
-    // into every build with no filtering — that would leak the Tina admin
-    // bundle into the customer-facing Acme/Beta sites, letting anyone with
-    // the link discover and potentially reach the CMS. TINA_LOCAL_DEV is
-    // set only by the tina:dev script below, never by the build:* scripts.
-    publicFolder: process.env.TINA_LOCAL_DEV ? "static" : "tina-admin-build",
+    // 1. Local dev (npm run tina:dev, TINA_LOCAL_DEV=1) — needs the admin
+    //    bundle inside static/, since Docusaurus's dev server only serves
+    //    files from there.
+    //
+    // 2. Production internal build (npm run build:internal, which now also
+    //    runs `tinacms build` afterward) — the editor is meant to be
+    //    reachable at docusaurus-demo-internal.../admin/index.html,
+    //    already behind Cloudflare Access. Output goes straight into
+    //    multi-build-output/internal, the same folder Cloudflare deploys
+    //    for that project.
+    //
+    // 3. Production customer builds (build:acme / build:beta) — MUST stay
+    //    fully isolated in tina-admin-build/, well away from static/ or
+    //    any customer output folder. An Acme or Beta visitor should have
+    //    no way to even discover the CMS exists. TINA_BUILD_TARGET is only
+    //    ever "internal" when this build is explicitly the internal one;
+    //    for customer builds it's unset, so this falls through to the
+    //    isolated folder by default — the safe default is "don't expose."
+    publicFolder: process.env.TINA_LOCAL_DEV
+      ? "static"
+      : process.env.TINA_BUILD_TARGET === "internal"
+        ? "multi-build-output/internal"
+        : "tina-admin-build",
   },
   media: {
     tina: {
