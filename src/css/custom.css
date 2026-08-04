@@ -18,9 +18,15 @@
   --ifm-color-primary-lightest: #6b9cf2;
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
 
-  /* GitBook's light theme reads a touch cooler/lighter than Infima's
-     default off-white — nudge background and sidebar tone to match. */
+/* Light-theme-only tweaks: GitBook's light theme reads a touch cooler
+   than Infima's default off-white. Explicitly scoped to
+   [data-theme='light'] — NOT plain :root — because :root applies
+   regardless of theme and was overriding dark mode's own background
+   variables, leaving dark mode half-applied (chrome went dark, but
+   background/text stayed light-mode white with washed-out contrast). */
+[data-theme='light'] {
   --ifm-navbar-background-color: #ffffff;
   --ifm-background-color: #ffffff;
   --ifm-menu-color-background-active: rgba(31, 111, 235, 0.08);
@@ -37,4 +43,51 @@
   --ifm-color-primary-lighter: #7cadfc;
   --ifm-color-primary-lightest: #a7c6fd;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* ----------------------------------------------------------------
+   Search: replace the Algolia autocomplete "detached modal" pattern
+   (dimmed full-screen overlay + small centered floating box, from
+   @algolia/autocomplete-theme-classic's .aa-DetachedContainer--modal)
+   with a panel that expands in place directly under the navbar
+   search field. Verified against the theme's actual shipped CSS
+   (node_modules/@algolia/autocomplete-theme-classic/dist/theme.css)
+   rather than guessed selector names.
+   ---------------------------------------------------------------- */
+
+/* Remove the dimming backdrop entirely — an in-place panel doesn't
+   need to visually compete with page content the way a modal does. */
+.aa-DetachedOverlay {
+  background-color: transparent !important;
+}
+
+/* Anchor the panel under the search field instead of centering it
+   partway down the viewport. */
+.aa-DetachedContainer,
+.aa-DetachedContainer--modal {
+  position: absolute !important;
+  top: 64px !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translateX(-50%);
+  width: min(720px, 92vw) !important;
+  max-width: none !important;
+  height: auto !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18) !important;
+}
+
+.aa-DetachedContainer--modal .aa-PanelLayout {
+  max-height: min(70vh, 600px) !important;
+  position: static !important;
+}
+
+/* The default theme hides the field inside the detached container
+   and shows only a magnifying-glass button in the navbar; since we
+   want the navbar field itself to feel like it "grows," keep the
+   button styled like a real search input at rest. */
+.aa-DetachedSearchButton {
+  width: 100%;
+  justify-content: flex-start;
 }
