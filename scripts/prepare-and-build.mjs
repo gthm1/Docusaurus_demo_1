@@ -115,7 +115,7 @@ for (const filePath of allFiles) {
 console.log(`Included ${includedCount} / ${allFiles.length} source files.`);
 
 // ---- 2b. Write a landing index page so the root path (/) resolves ----
-const CUSTOMER_LABELS = { acme: "Acme Corp", beta: "Beta Industries" };
+const CUSTOMER_LABELS = { acme: "Acme Corp", beta: "Beta Industries", gamma: "Gamma Corp" };
 const landingTitle =
   mode === "internal"
     ? "Minnovation Internal Documentation"

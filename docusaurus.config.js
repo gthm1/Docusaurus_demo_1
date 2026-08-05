@@ -15,6 +15,7 @@ const customerSlug = isCustomerBuild ? BUILD_TARGET.replace('customer-', '') : n
 const CUSTOMER_LABELS = {
   acme: 'Acme Corp',
   beta: 'Beta Industries',
+  gamma: 'Gamma Corp',
 };
 
 // Real Cloudflare Workers domains per target. The placeholder used here
@@ -26,6 +27,7 @@ const SITE_URLS = {
   internal: 'https://docusaurus-demo-internal.gowthamreddy020598.workers.dev',
   'customer-acme': 'https://docusaurus-demo-acme.gowthamreddy020598.workers.dev',
   'customer-beta': 'https://docusaurus-demo-beta.gowthamreddy020598.workers.dev',
+  'customer-gamma': 'https://docusaurus-demo-gamma.gowthamreddy020598.workers.dev',
 };
 const siteUrl = SITE_URLS[BUILD_TARGET] || SITE_URLS.internal;
 

@@ -81,6 +81,7 @@ export default defineConfig({
             options: [
               { value: "acme", label: "Acme Corp" },
               { value: "beta", label: "Beta Industries" },
+              { value: "gamma", label: "Gamma Corp" },
             ],
             description:
               "Leave blank for general internal documentation not tied to any customer. Set this to scope the page to one customer's area.",
