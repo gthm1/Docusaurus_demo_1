@@ -19,4 +19,4 @@ Welcome to your Minnovation documentation portal, Gamma Corp.
 
 1. Log in to your AlphaX Cloud workspace using the credentials sent to your admin
 2. Confirm gateway connectivity on the Xmesh dashboard
-3. Review the API Reference page for integration options
+3. Review the API Reference page for integration option
