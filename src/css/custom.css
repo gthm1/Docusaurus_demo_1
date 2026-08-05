@@ -62,11 +62,15 @@
 }
 
 /* Anchor the panel under the search field instead of centering it
-   partway down the viewport. */
+   partway down the viewport. Use `fixed` (not `absolute`) so the
+   offset is always measured from the viewport itself — the vendor's
+   own container isn't guaranteed to sit near a positioned ancestor,
+   and `absolute` was measuring `top` from wherever it happened to
+   land in the DOM instead of the page top. */
 .aa-DetachedContainer,
 .aa-DetachedContainer--modal {
-  position: absolute !important;
-  top: 64px !important;
+  position: fixed !important;
+  top: 12px !important;
   left: 50% !important;
   right: auto !important;
   bottom: auto !important;
