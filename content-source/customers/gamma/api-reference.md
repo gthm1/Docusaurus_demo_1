@@ -1,15 +1,15 @@
 ---
 title: API Reference
-customer: beta
+customer: gamma
 visibility: public
 sidebar_position: 2
 ---
 
-# API Reference — Beta Industries
+# API Reference — Gamma Corp
 
 ## Authentication
 
-All requests require your Beta-issued API key in the `X-API-Key` header.
+All requests require your Gamma-issued API key in the `X-API-Key` header.
 
 ## Endpoints
 
