@@ -1,0 +1,9 @@
+{
+  "$schema": "https://developers.cloudflare.com/pages/",
+  "name": "gd-multitenant-demo-editor",
+  "compatibility_date": "2026-07-29",
+  "assets": {
+    "directory": "./",
+    "not_found_handling": "404-page"
+  }
+}
